@@ -16,9 +16,8 @@ pub fn rust_eh_personality() {}
 pub fn rust_eh_unwind_resume() {}
 
 #[lang = "panic_fmt"]
-#[allow(unused_variables)]
 #[no_mangle]
-pub fn rust_begin_panic(fmt: Arguments, file_line: &(&'static str, u32)) -> ! {
+pub fn rust_begin_panic(_fmt: Arguments, _file_line: &(&'static str, u32)) -> ! {
     unsafe {
         abort();
     }
