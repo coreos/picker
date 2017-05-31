@@ -8,4 +8,4 @@ name = "picker"
 crate-type = ["dylib"]
 
 [dependencies]
-uefi = "*"
+uefi = "0.1"

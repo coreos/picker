@@ -5,7 +5,3 @@ target/
 *.o
 *.so
 *.efi
-
-# and cargo.lock
-
-Cargo.lock
