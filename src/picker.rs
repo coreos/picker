@@ -7,8 +7,8 @@ use uefi::*;
 
 pub mod uefi_entry;
 
-pub fn efi_main() -> isize {
+pub fn efi_main() -> Status {
     let cons = uefi::get_system_table().console();
     cons.write("picker v0.0.1\r\n");
-    0
+    Status::Success
 }
