@@ -23,23 +23,6 @@ pub fn rust_begin_panic(_fmt: Arguments, _file_line: &(&'static str, u32)) -> ! 
     }
 }
 
-pub fn str_to_u16_pointer(s: &str) -> *const u16 {
-    let mut buf = [0u16; 4096];
-
-    let mut i = 0;
-    for c in s.chars() {
-        if i >= 4096 {
-            break;
-        }
-        buf[i] = c as u16;
-        i += 1;
-    }
-
-    *buf.last_mut().unwrap() = 0;
-
-    unsafe { transmute(&buf) }
-}
-
 // Needed for copy_nonoverlapping.
 #[no_mangle]
 pub fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
