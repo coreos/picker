@@ -25,17 +25,10 @@ pub fn rust_begin_panic(_fmt: Arguments, _file_line: &(&'static str, u32)) -> ! 
 
 // Needed for copy_nonoverlapping.
 #[no_mangle]
-pub fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
-    let mut i: usize = 0;
-    while i < n {
-        unsafe {
-            *(dest.offset(i as isize)) = *(src.offset(i as isize));
-        }
-
-        i += 1;
-    }
-
-    dest
+pub extern "C" fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
+    uefi::get_system_table()
+        .boot_services()
+        .copy_mem(dest, src, n)
 }
 
 #[no_mangle]
