@@ -1,0 +1,14 @@
+[root]
+name = "picker"
+version = "0.1.0"
+dependencies = [
+ "uefi 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "uefi"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[metadata]
+"checksum uefi 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "0ef8bf5969f8762f7c419a49b6509fab540fbe9267a74343b45840ae176be32c"

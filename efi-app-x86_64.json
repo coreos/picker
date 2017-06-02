@@ -1,0 +1,26 @@
+{
+    "llvm-target": "x86_64-unknown-linux-gnu",
+    "target-endian": "little",
+    "target-pointer-width": "64",
+    "data-layout": "e-m:e-i64:64-f80:128-n8:16:32:64-S128",
+    "arch": "x86_64",
+    
+    "os": "linux",
+    "target-env": "gnu",
+    "target-vendor": "unknown",
+
+    "linker": "ld",
+    "linker-flavor": "ld",
+    "linker-is-gnu": true,
+
+    "is-like-windows": false,
+
+    "link-args": ["-nostartfiles", "-pie"],
+
+    "executables": true,
+    "morestack": false,
+    "disable-redzone": true,
+    "no-compiler-rt": true,
+    "position-independent-executables": true,
+    "dynamic-linking": true
+}

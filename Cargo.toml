@@ -1,0 +1,11 @@
+[package]
+name = "picker"
+version = "0.1.0"
+authors = [ "james.forcier@coreos.com" ]
+
+[lib]
+name = "picker"
+crate-type = ["dylib"]
+
+[dependencies]
+uefi = "0.1"
