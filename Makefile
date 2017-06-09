@@ -8,11 +8,14 @@ all: build/bootx64-release.efi
 
 debug: TYPE := debug
 debug: XARGO_FLAG :=
-debug: build/bootx64-debug.efi
+debug: build/bootx64-debug.efi build/bootx64-debug-symbols.efi
 .PHONY: debug
 
 build/bootx64-%.efi: build/picker-%.so
 	objcopy -j .text -j .sdata -j .data -j .dynamic -j .dynsym -j .rel -j .rela -j .reloc --target=efi-app-x86_64 $< build/bootx64-$(TYPE).efi
+
+build/bootx64-%-symbols.efi: build/picker-%.so
+	objcopy --target=efi-app-x86_64 $< build/bootx64-$(TYPE)-symbols.efi
 
 # Because xargo/cargo don't remove old build artifacts from deps/ when
 # building, if source files or dependencies are removed, they will still be
