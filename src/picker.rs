@@ -16,6 +16,7 @@
 #![feature(intrinsics)]
 #![feature(lang_items)]
 
+extern crate rlibc;
 extern crate uefi;
 use uefi::*;
 
