@@ -25,7 +25,7 @@ pub mod util;
 
 pub mod uefi_entry;
 
-pub fn efi_main() -> Status {
+pub fn efi_main(image_handle: Handle) -> Status {
     let cons = uefi::get_system_table().console();
     cons.write("picker v0.0.1\r\n");
     Status::Success
