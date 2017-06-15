@@ -8,5 +8,5 @@ name = "picker"
 crate-type = ["dylib"]
 
 [dependencies]
-uefi = "0.1"
+uefi = { git = "https://github.com/csssuf/rust-uefi" }
 rlibc = "1.0"

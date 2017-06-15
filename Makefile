@@ -25,7 +25,7 @@ build/picker-%.so: target/efi-app-x86_64/%/deps/picker.o
 	@mkdir -p build
 	ld target/efi-app-x86_64/$(TYPE)/deps/*.o $(EFI_DIR)/crt0-efi-x86_64.o -nostdlib -znocombreloc -T $(EFI_DIR)/elf_x86_64_efi.lds -shared -Bsymbolic -lefi -L $(LIB_DIR) -pie -e efi_entry -o $@
 
-target/efi-app-x86_64/%/deps/picker.o: src/picker.rs src/uefi_entry/mod.rs src/uefi_entry/util.rs Cargo.toml
+target/efi-app-x86_64/%/deps/picker.o: src/picker.rs src/uefi_entry/mod.rs src/util/mod.rs src/util/input.rs Cargo.toml
 	xargo build --target=efi-app-x86_64 $(XARGO_FLAG)
 
 clean:

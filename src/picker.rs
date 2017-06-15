@@ -18,7 +18,10 @@
 
 extern crate rlibc;
 extern crate uefi;
+
 use uefi::*;
+
+pub mod util;
 
 pub mod uefi_entry;
 

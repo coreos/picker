@@ -3,7 +3,7 @@ name = "picker"
 version = "0.1.0"
 dependencies = [
  "rlibc 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "uefi 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "uefi 0.1.2 (git+https://github.com/csssuf/rust-uefi)",
 ]
 
 [[package]]
@@ -14,8 +14,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "uefi"
 version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/csssuf/rust-uefi#ba367740c975edaa7156a6bb8543c1378384b7fa"
 
 [metadata]
 "checksum rlibc 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "fc874b127765f014d792f16763a81245ab80500e2ad921ed4ee9e82481ee08fe"
-"checksum uefi 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "0ef8bf5969f8762f7c419a49b6509fab540fbe9267a74343b45840ae176be32c"
+"checksum uefi 0.1.2 (git+https://github.com/csssuf/rust-uefi)" = "<none>"
