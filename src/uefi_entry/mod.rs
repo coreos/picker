@@ -14,10 +14,19 @@
 
 extern crate uefi;
 
+use uefi::{protocol, Status};
+
 #[no_mangle]
 pub extern "win64" fn efi_entry(image_handle: uefi::Handle,
                                 system_table: *const uefi::SystemTable)
                                 -> isize {
     uefi::set_system_table(system_table).console().reset();
-    ::efi_main() as isize
+
+    let loaded_image_proto: Result<&'static protocol::LoadedImageProtocol, Status> =
+        protocol::set_current_image(image_handle);
+    if let Err(status) = loaded_image_proto {
+        return status as isize;
+    }
+
+    ::efi_main(image_handle) as isize
 }
