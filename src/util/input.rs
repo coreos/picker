@@ -32,10 +32,9 @@ pub fn read_key_timeout(timeout_ms: u64) -> Result<Option<InputKey>, Status> {
             return Err(set_result);
         }
 
-        bs.wait_for_event(&events)
-            .and_then(|event| match event {
-                          0 => cons.read_key_async().and_then(|key| Ok(Some(key))),
-                          _ => Ok(None),
-                      })
+        bs.wait_for_event(&events).and_then(|event| match event {
+            0 => cons.read_key_async().and_then(|key| Ok(Some(key))),
+            _ => Ok(None),
+        })
     })
 }
