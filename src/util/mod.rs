@@ -14,10 +14,8 @@
 
 extern crate uefi;
 
-mod image;
 mod input;
 
-pub use self::image::*;
 pub use self::input::*;
 
 use core::fmt::Arguments;

@@ -16,6 +16,12 @@ extern crate uefi;
 
 use uefi::*;
 
+// When gptprio is implemented, boot_data may change to another type. For now it's just a path.
+pub struct BootOption {
+    pub display: &'static str,
+    pub boot_data: &'static str,
+}
+
 fn str_to_device_path(image: &str) -> Result<&protocol::DevicePathProtocol, Status> {
     let bs = uefi::get_system_table().boot_services();
     bs.locate_protocol::<protocol::DevicePathFromTextProtocol>(0 as *const CVoid)
@@ -38,7 +44,7 @@ fn build_boot_path(
         })
 }
 
-pub fn boot_image(image: &str, parent: Handle) -> Result<(), Status> {
+fn boot_image(image: &str, parent: Handle) -> Result<(), Status> {
     let bs = uefi::get_system_table().boot_services();
 
     str_to_device_path(image)
@@ -50,4 +56,8 @@ pub fn boot_image(image: &str, parent: Handle) -> Result<(), Status> {
                 },
             )
         })
+}
+
+pub fn boot(opt: &BootOption, parent: Handle) -> Result<(), Status> {
+    boot_image(opt.boot_data, parent)
 }
