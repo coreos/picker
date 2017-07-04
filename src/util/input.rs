@@ -14,11 +14,11 @@
 
 extern crate uefi;
 
-use core::ptr;
+use core::{char, ptr};
 
 use uefi::*;
 
-pub fn read_key_timeout(timeout_ms: u64) -> Result<Option<InputKey>, Status> {
+pub fn read_key_timeout(timeout_ms: u64) -> Result<Option<char>, Status> {
     let st = uefi::get_system_table();
     let bs = st.boot_services();
     let cons = st.console();
@@ -33,7 +33,16 @@ pub fn read_key_timeout(timeout_ms: u64) -> Result<Option<InputKey>, Status> {
         }
 
         bs.wait_for_event(&events).and_then(|event| match event {
-            0 => cons.read_key_async().and_then(|key| Ok(Some(key))),
+            0 => {
+                cons.read_key_async().map(|key| {
+                    if key.unicode_char == 0 {
+                        // Not a printable character, pretend nothing happened
+                        return None;
+                    }
+
+                    Some(char::from_u32(key.unicode_char as u32).unwrap_or('?'))
+                })
+            }
             _ => Ok(None),
         })
     })
