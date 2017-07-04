@@ -22,8 +22,11 @@ extern crate uefi;
 use uefi::*;
 
 pub mod boot;
+pub mod menu;
 pub mod util;
 pub mod uefi_entry;
+
+use boot::BootOption;
 
 const BOOTPATH_1: &'static str = "\\efi\\boot\\shim_a.efi";
 const BOOTPATH_2: &'static str = "\\efi\\boot\\shim_b.efi";
@@ -34,72 +37,20 @@ pub fn efi_main(image_handle: Handle) -> Status {
 
     cons.write("picker v0.0.1\r\n");
 
-    let bootopt_1 = boot::BootOption {
-        display: "Shim A",
-        boot_data: "\\efi\\boot\\shim_a.efi",
+    let option_a = BootOption {
+        display: "application a",
+        boot_data: BOOTPATH_1,
     };
-    let bootopt_2 = boot::BootOption {
-        display: "Shim B",
-        boot_data: "\\efi\\boot\\shim_B.efi",
+    let option_b = BootOption {
+        display: "application b",
+        boot_data: BOOTPATH_2,
     };
 
-    loop {
-        cons.write("Option 1: ");
-        cons.write(bootopt_1.display);
-        cons.write("\r\n");
-
-        cons.write("Option 2: ");
-        cons.write(bootopt_2.display);
-        cons.write("\r\n");
-
-        cons.write("Option (taking default in 5 seconds...): ");
-        match util::read_key_timeout(5000) {
-            Ok(Some(key)) => {
-                let output: [u16; 2] = [key.unicode_char, 0];
-                cons.write_raw(&output as *const u16);
-                cons.write("\r\n");
-
-                match key.unicode_char as u8 as char {
-                    '1' => {
-                        if let Err(e) = boot::boot(&bootopt_1, image_handle) {
-                            cons.write("Couldn't boot choice: ");
-                            cons.write(e.str());
-                            cons.write("\r\n");
-                            return e;
-                        }
-                        break;
-                    }
-                    '2' => {
-                        if let Err(e) = boot::boot(&bootopt_2, image_handle) {
-                            cons.write("Couldn't boot choice: ");
-                            cons.write(e.str());
-                            cons.write("\r\n");
-                            return e;
-                        }
-                        break;
-                    }
-                    _ => {
-                        cons.write("Unrecognized option.");
-                    }
-                }
-            }
-            Ok(None) => {
-                cons.write("\r\nTaking default.\r\n");
-                if let Err(e) = boot::boot(&bootopt_1, image_handle) {
-                    cons.write("Couldn't boot default: ");
-                    cons.write(e.str());
-                    cons.write("\r\n");
-                    return e;
-                }
-                break;
-            }
-            Err(_) => {
-                cons.write("\r\nCouldn't read key.");
-            }
-        }
-
-        cons.write("\r\n");
+    match menu::boot_menu(&option_a, &option_b).and_then(|option| {
+        let result = option.unwrap_or(&option_a);
+        boot::boot(result, image_handle)
+    }) {
+        Ok(_) => Status::Success,
+        Err(e) => e,
     }
-
-    Status::Success
 }
