@@ -37,9 +37,9 @@ fn build_boot_path(
         .and_then(|this_device_path| {
             bs.locate_protocol::<protocol::DevicePathUtilitiesProtocol>(0 as *const CVoid)
                 .and_then(|utilities| {
-                    utilities.append_device_node(this_device_path, file).map(
-                        |output| output as *const protocol::DevicePathProtocol,
-                    )
+                    utilities
+                        .append_device_node(this_device_path, file)
+                        .map(|output| output as *const protocol::DevicePathProtocol)
                 })
         })
 }
@@ -50,11 +50,8 @@ fn boot_image(image: &str, parent: Handle) -> Result<(), Status> {
     str_to_device_path(image)
         .and_then(build_boot_path)
         .and_then(|full_path| {
-            bs.load_image(true, parent, full_path).and_then(
-                |loaded_image| {
-                    bs.start_image(loaded_image)
-                },
-            )
+            bs.load_image(true, parent, full_path)
+                .and_then(|loaded_image| bs.start_image(loaded_image))
         })
 }
 

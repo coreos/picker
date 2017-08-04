@@ -43,13 +43,11 @@ where
 
         write("Enter boot choice: ");
         match read() {
-            Ok(Some(key)) => {
-                match key {
-                    '1' => return Ok(Some(option_a)),
-                    '2' => return Ok(Some(option_b)),
-                    _ => write("Unrecognized option."),
-                }
-            }
+            Ok(Some(key)) => match key {
+                '1' => return Ok(Some(option_a)),
+                '2' => return Ok(Some(option_b)),
+                _ => write("Unrecognized option."),
+            },
             Ok(None) => {
                 write("Taking default.\r\n");
                 return Ok(None);
