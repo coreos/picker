@@ -14,8 +14,10 @@
 
 extern crate uefi;
 
+mod gpt;
 mod input;
 
+pub use self::gpt::*;
 pub use self::input::*;
 
 use core::fmt::Arguments;
