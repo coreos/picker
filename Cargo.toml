@@ -11,3 +11,4 @@ path = "src/picker.rs"
 [dependencies]
 uefi = { git = "https://github.com/csssuf/rust-uefi" }
 rlibc = "1.0"
+bitfield = "0.12.0"

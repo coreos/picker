@@ -15,6 +15,8 @@
 #![no_std]
 #![feature(lang_items)]
 
+#[macro_use]
+extern crate bitfield;
 extern crate rlibc;
 extern crate uefi;
 

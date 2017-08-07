@@ -2,9 +2,15 @@
 name = "picker"
 version = "0.1.0"
 dependencies = [
+ "bitfield 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rlibc 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "uefi 0.1.2 (git+https://github.com/csssuf/rust-uefi)",
 ]
+
+[[package]]
+name = "bitfield"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "bitflags"
@@ -25,6 +31,7 @@ dependencies = [
 ]
 
 [metadata]
+"checksum bitfield 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)" = "eb988c10184429ae27919881dd9ce0298b87557d12c508e664353eafb336580e"
 "checksum bitflags 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)" = "4efd02e230a02e18f92fc2735f44597385ed02ad8f831e7c1c1156ee5e1ab3a5"
 "checksum rlibc 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "fc874b127765f014d792f16763a81245ab80500e2ad921ed4ee9e82481ee08fe"
 "checksum uefi 0.1.2 (git+https://github.com/csssuf/rust-uefi)" = "<none>"

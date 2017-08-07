@@ -15,6 +15,7 @@
 extern crate uefi;
 
 mod gpt;
+pub mod gptprio;
 mod input;
 
 pub use self::gpt::*;
