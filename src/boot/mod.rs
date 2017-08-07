@@ -14,6 +14,8 @@
 
 extern crate uefi;
 
+use core::ptr;
+
 use uefi::*;
 
 // When gptprio is implemented, boot_data may change to another type. For now it's just a path.
@@ -24,7 +26,7 @@ pub struct BootOption {
 
 fn str_to_device_path(image: &str) -> Result<&protocol::DevicePathProtocol, Status> {
     let bs = uefi::get_system_table().boot_services();
-    bs.locate_protocol::<protocol::DevicePathFromTextProtocol>(0 as *const CVoid)
+    bs.locate_protocol::<protocol::DevicePathFromTextProtocol>(ptr::null())
         .and_then(|from_text| from_text.text_to_device_path_node(image))
 }
 
@@ -35,7 +37,7 @@ fn build_boot_path(
 
     bs.handle_protocol::<protocol::DevicePathProtocol>(protocol::get_current_image().device_handle)
         .and_then(|this_device_path| {
-            bs.locate_protocol::<protocol::DevicePathUtilitiesProtocol>(0 as *const CVoid)
+            bs.locate_protocol::<protocol::DevicePathUtilitiesProtocol>(ptr::null())
                 .and_then(|utilities| {
                     utilities
                         .append_device_node(this_device_path, file)

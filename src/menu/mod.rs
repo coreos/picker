@@ -63,7 +63,7 @@ where
 }
 
 fn serial_menu<'a>(
-    serial: SerialIOProtocol,
+    serial: &SerialIOProtocol,
     option_a: &'a BootOption,
     option_b: &'a BootOption,
 ) -> Result<Option<&'a BootOption>, Status> {
@@ -126,9 +126,9 @@ pub fn boot_menu<'a>(
     uefi::protocol::SerialIOProtocol::new()
         .and_then(|mut serial| {
             serial
-                .update_attributes(None, None, Some(100000), None, None, None)
+                .update_attributes(None, None, Some(100_000), None, None, None)
                 .map(|_| serial)
         })
-        .and_then(|serial| serial_menu(serial, option_a, option_b))
+        .and_then(|serial| serial_menu(&serial, option_a, option_b))
         .or_else(|_| console_menu(option_a, option_b))
 }

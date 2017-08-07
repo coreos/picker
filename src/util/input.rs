@@ -27,7 +27,7 @@ pub fn read_key_timeout(timeout_ms: u64) -> Result<Option<char>, Status> {
     event_result.and_then(|timer_event| {
         let events: [Event; 2] = [cons.wait_for_key(), timer_event];
 
-        let set_result = bs.set_timer(timer_event, TimerDelay::Relative, timeout_ms * 10000);
+        let set_result = bs.set_timer(timer_event, TimerDelay::Relative, timeout_ms * 10_000);
         if set_result != Status::Success {
             return Err(set_result);
         }
