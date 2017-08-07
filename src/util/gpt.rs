@@ -14,6 +14,8 @@
 
 extern crate uefi;
 
+use core::{mem, slice};
+
 use uefi::{Guid, Handle, Status, GET_PROTOCOL};
 use uefi::protocol::{get_current_image_handle, BlockIOProtocol, DevicePathProtocol};
 
@@ -94,6 +96,30 @@ impl GptHeader {
     }
 }
 
+#[derive(Copy)]
+#[repr(C, packed)]
+pub struct GptPartitionEntry {
+    pub(crate) partition_type_guid: Guid,
+    pub(crate) unique_partition_guid: Guid,
+    starting_lba: u64,
+    ending_lba: u64,
+    pub(crate) attributes: u64,
+    pub(crate) partition_name: [u16; 36],
+}
+
+impl Clone for GptPartitionEntry {
+    fn clone(&self) -> GptPartitionEntry {
+        GptPartitionEntry {
+            partition_type_guid: self.partition_type_guid,
+            unique_partition_guid: self.unique_partition_guid,
+            starting_lba: self.starting_lba,
+            ending_lba: self.ending_lba,
+            attributes: self.attributes,
+            partition_name: self.partition_name,
+        }
+    }
+}
+
 pub struct GptDisk<'a> {
     block_device: &'static BlockIOProtocol,
     primary_header: &'a GptHeader,
@@ -105,8 +131,8 @@ impl<'a> GptDisk<'a> {
     pub fn read_from(device: &DevicePathProtocol) -> Result<GptDisk, Status> {
         let bs = uefi::get_system_table().boot_services();
 
-        bs.locate_device_path::<BlockIOProtocol>(device)
-            .and_then(|(handle, usable_device)| {
+        bs.locate_device_path::<BlockIOProtocol>(device).and_then(
+            |(handle, _usable_device)| {
                 bs.open_protocol::<BlockIOProtocol>(
                     handle,
                     get_current_image_handle(),
@@ -129,7 +155,8 @@ impl<'a> GptDisk<'a> {
                             }
                         })
                     })
-            })
+            },
+        )
     }
 
     /// Validate an instance of a `GptHeader`.
@@ -153,6 +180,42 @@ impl<'a> GptDisk<'a> {
                         self.alternate_header = &*(block.as_ptr() as *const GptHeader);
                         self.alternate_header
                             .validate(self.primary_header.alternate_lba, self.block_device)
+                    })
+            })
+    }
+
+    /// Read the partition entry array from this disk and return it.
+    pub fn read_partitions(&self) -> Result<&[&mut GptPartitionEntry], Status> {
+        let bs = uefi::get_system_table().boot_services();
+
+        let num_partitions = self.primary_header.num_partition_entries as usize;
+        let partition_entry_table_size = (self.primary_header.num_partition_entries *
+            self.primary_header.sizeof_partition_entry) as
+            usize;
+
+        self.block_device
+            .read_bytes(
+                self.primary_header.partition_entry_lba,
+                partition_entry_table_size,
+            )
+            .and_then(|partition_entry_table| {
+                bs.allocate_pool::<&mut GptPartitionEntry>(
+                    num_partitions * mem::size_of::<&mut GptPartitionEntry>(),
+                ).map(|entries_ptr| {
+                        let entries =
+                            unsafe { slice::from_raw_parts_mut(entries_ptr, num_partitions) };
+                        for part_number in 0..(self.primary_header.num_partition_entries) {
+                            let offset =
+                                (part_number * self.primary_header.sizeof_partition_entry) as isize;
+
+                            unsafe {
+                                let entry_ptr = partition_entry_table.as_ptr().offset(offset);
+                                let entry = &mut *(entry_ptr as *mut GptPartitionEntry);
+                                (*entries)[part_number as usize] = entry;
+                            }
+                        }
+
+                        &*entries
                     })
             })
     }
