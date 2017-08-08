@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #![no_std]
-#![feature(intrinsics)]
 #![feature(lang_items)]
 
 extern crate rlibc;
