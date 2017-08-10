@@ -40,12 +40,6 @@ pub struct GptHeader {
     partition_entry_array_crc32: u32,
 }
 
-impl Drop for GptHeader {
-    fn drop(&mut self) {
-        uefi::get_system_table().boot_services().free_pool(self);
-    }
-}
-
 impl GptHeader {
     fn validate(&mut self, my_lba: u64) -> Result<(), Status> {
         let bs = uefi::get_system_table().boot_services();
@@ -103,6 +97,25 @@ pub struct GptDisk<'a> {
     alternate_header: &'a mut GptHeader,
 }
 
+impl<'a> Drop for GptDisk<'a> {
+    fn drop(&mut self) {
+        let bs = uefi::get_system_table().boot_services();
+        if self.block_device.must_align() {
+            bs.free_pages(
+                self.primary_header,
+                self.block_device.required_pages_block(1),
+            );
+            bs.free_pages(
+                self.alternate_header,
+                self.block_device.required_pages_block(1),
+            );
+        } else {
+            bs.free_pool(self.primary_header);
+            bs.free_pool(self.alternate_header);
+        }
+    }
+}
+
 impl<'a> GptDisk<'a> {
     /// Read the GPT header from a given device, and perform all necessary validation on it.
     pub fn read_from(device: &DevicePathProtocol) -> Result<GptDisk, Status> {
@@ -131,16 +144,7 @@ impl<'a> GptDisk<'a> {
         out.primary_header = primary_header;
         out.alternate_header = alternate_header;
 
-        match unsafe { out.validate() } {
-            Ok(_) => Ok(out),
-            Err(e) => {
-                bs.free_pool(primary_block.as_ptr());
-                mem::forget(out.primary_header);
-                bs.free_pool(alternate_block.as_ptr());
-                mem::forget(out.alternate_header);
-                Err(e)
-            }
-        }
+        unsafe { out.validate().map(|_| out) }
     }
 
     /// Validate an instance of a `GptHeader`.
