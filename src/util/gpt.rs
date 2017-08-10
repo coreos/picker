@@ -14,7 +14,7 @@
 
 extern crate uefi;
 
-use core::{mem, slice};
+use core::{mem, ptr, slice};
 
 use uefi::{Guid, Handle, Status, GET_PROTOCOL};
 use uefi::protocol::{get_current_image_handle, BlockIOProtocol, DevicePathProtocol};
@@ -47,7 +47,7 @@ impl Drop for GptHeader {
 }
 
 impl GptHeader {
-    fn validate(&self, my_lba: u64, block_io: &'static BlockIOProtocol) -> Result<(), Status> {
+    fn validate(&mut self, my_lba: u64) -> Result<(), Status> {
         let bs = uefi::get_system_table().boot_services();
 
         if self.signature != HEADER_SIGNATURE {
@@ -59,40 +59,17 @@ impl GptHeader {
             return Err(Status::VolumeCorrupted);
         }
 
-        block_io
-            .read_blocks(self.my_lba, 1)
-            .and_then(|header_copy_block| {
-                let this_header =
-                    unsafe { &mut *(header_copy_block.as_mut_ptr() as *mut GptHeader) };
+        let my_crc32 = self.header_crc32;
 
-                this_header.header_crc32 = 0;
+        self.header_crc32 = 0;
+        let crc32 = bs.calculate_crc32_sized(self, self.header_size as usize)?;
+        self.header_crc32 = my_crc32;
 
-                bs.calculate_crc32_sized(this_header, self.header_size as usize)
-                    .and_then(|crc32| {
-                        if crc32 != self.header_crc32 {
-                            return Err(Status::CrcError);
-                        }
+        if crc32 != self.header_crc32 {
+            return Err(Status::CrcError);
+        }
 
-                        Ok(())
-                    })
-            })
-            .and_then(|_| {
-                let partition_entry_table_size =
-                    (self.num_partition_entries * self.sizeof_partition_entry) as usize;
-
-                block_io
-                    .read_bytes(self.partition_entry_lba, partition_entry_table_size)
-                    .and_then(|entry_table| {
-                        bs.calculate_crc32_sized(entry_table.as_ptr(), partition_entry_table_size)
-                            .and_then(|crc32| {
-                                if crc32 != self.partition_entry_array_crc32 {
-                                    return Err(Status::CrcError);
-                                }
-
-                                Ok(())
-                            })
-                    })
-            })
+        Ok(())
     }
 }
 
@@ -122,8 +99,8 @@ impl Clone for GptPartitionEntry {
 
 pub struct GptDisk<'a> {
     block_device: &'static BlockIOProtocol,
-    primary_header: &'a GptHeader,
-    alternate_header: &'a GptHeader,
+    primary_header: &'a mut GptHeader,
+    alternate_header: &'a mut GptHeader,
 }
 
 impl<'a> GptDisk<'a> {
@@ -131,32 +108,39 @@ impl<'a> GptDisk<'a> {
     pub fn read_from(device: &DevicePathProtocol) -> Result<GptDisk, Status> {
         let bs = uefi::get_system_table().boot_services();
 
-        bs.locate_device_path::<BlockIOProtocol>(device).and_then(
-            |(handle, _usable_device)| {
-                bs.open_protocol::<BlockIOProtocol>(
-                    handle,
-                    get_current_image_handle(),
-                    Handle::default(),
-                    GET_PROTOCOL,
-                ).and_then(|protocol| {
-                        // Read 1 block starting at block 1.
-                        protocol.read_blocks(1, 1).and_then(|block| {
-                            let mut out = GptDisk {
-                                block_device: protocol,
-                                primary_header: unsafe { &*(block.as_ptr() as *const GptHeader) },
-                                alternate_header: unsafe { &*(block.as_ptr() as *const GptHeader) },
-                            };
+        let (handle, _usable_device) = bs.locate_device_path::<BlockIOProtocol>(device)?;
+        let protocol = bs.open_protocol::<BlockIOProtocol>(
+            handle,
+            get_current_image_handle(),
+            Handle::default(),
+            GET_PROTOCOL,
+        )?;
 
-                            unsafe {
-                                out.validate().map(|_| out).map_err(|e| {
-                                    bs.free_pool(block.as_ptr());
-                                    e
-                                })
-                            }
-                        })
-                    })
-            },
-        )
+        let mut out = GptDisk {
+            block_device: protocol,
+            primary_header: unsafe { &mut *(ptr::null_mut()) },
+            alternate_header: unsafe { &mut *(ptr::null_mut()) },
+        };
+
+        let primary_block = protocol.read_blocks(1, 1)?;
+        let primary_header = unsafe { &mut *(primary_block.as_mut_ptr() as *mut GptHeader) };
+
+        let alternate_block = protocol.read_blocks(primary_header.alternate_lba, 1)?;
+        let alternate_header = unsafe { &mut *(alternate_block.as_mut_ptr() as *mut GptHeader) };
+
+        out.primary_header = primary_header;
+        out.alternate_header = alternate_header;
+
+        match unsafe { out.validate() } {
+            Ok(_) => Ok(out),
+            Err(e) => {
+                bs.free_pool(primary_block.as_ptr());
+                mem::forget(out.primary_header);
+                bs.free_pool(alternate_block.as_ptr());
+                mem::forget(out.alternate_header);
+                Err(e)
+            }
+        }
     }
 
     /// Validate an instance of a `GptHeader`.
@@ -171,17 +155,20 @@ impl<'a> GptDisk<'a> {
     /// >* Check the AlternateLBA to see if it is a valid GPT
     unsafe fn validate(&mut self) -> Result<(), Status> {
         // The primary header is always read from LBA 1, so we call `validate` with that value.
-        self.primary_header
-            .validate(1, self.block_device)
-            .and_then(|_| {
-                self.block_device
-                    .read_blocks(self.primary_header.alternate_lba, 1)
-                    .and_then(|block| {
-                        self.alternate_header = &*(block.as_ptr() as *const GptHeader);
-                        self.alternate_header
-                            .validate(self.primary_header.alternate_lba, self.block_device)
-                    })
-            })
+        self.primary_header.validate(1)?;
+        self.alternate_header
+            .validate(self.primary_header.alternate_lba)?;
+
+        let partitions = self.read_partitions_raw()?;
+        let partition_crc32 = uefi::get_system_table()
+            .boot_services()
+            .calculate_crc32_sized(partitions.as_ptr(), partitions.len())?;
+
+        if partition_crc32 != self.primary_header.partition_entry_array_crc32 {
+            return Err(Status::CrcError);
+        }
+
+        Ok(())
     }
 
     /// Read the partition entry array from this disk and return it.
@@ -218,5 +205,12 @@ impl<'a> GptDisk<'a> {
                         &*entries
                     })
             })
+    }
+
+    fn read_partitions_raw(&self) -> Result<&mut [u8], Status> {
+        let read_size = (self.primary_header.num_partition_entries *
+            self.primary_header.sizeof_partition_entry) as usize;
+        self.block_device
+            .read_bytes(self.primary_header.partition_entry_lba, read_size)
     }
 }
