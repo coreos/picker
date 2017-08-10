@@ -176,35 +176,24 @@ impl<'a> GptDisk<'a> {
         let bs = uefi::get_system_table().boot_services();
 
         let num_partitions = self.primary_header.num_partition_entries as usize;
-        let partition_entry_table_size = (self.primary_header.num_partition_entries *
-            self.primary_header.sizeof_partition_entry) as
-            usize;
+        let partition_entry_table = self.read_partitions_raw()?;
 
-        self.block_device
-            .read_bytes(
-                self.primary_header.partition_entry_lba,
-                partition_entry_table_size,
-            )
-            .and_then(|partition_entry_table| {
-                bs.allocate_pool::<&mut GptPartitionEntry>(
-                    num_partitions * mem::size_of::<&mut GptPartitionEntry>(),
-                ).map(|entries_ptr| {
-                        let entries =
-                            unsafe { slice::from_raw_parts_mut(entries_ptr, num_partitions) };
-                        for part_number in 0..(self.primary_header.num_partition_entries) {
-                            let offset =
-                                (part_number * self.primary_header.sizeof_partition_entry) as isize;
+        let entries_ptr = bs.allocate_pool::<&mut GptPartitionEntry>(
+            num_partitions * mem::size_of::<&mut GptPartitionEntry>(),
+        )?;
 
-                            unsafe {
-                                let entry_ptr = partition_entry_table.as_ptr().offset(offset);
-                                let entry = &mut *(entry_ptr as *mut GptPartitionEntry);
-                                (*entries)[part_number as usize] = entry;
-                            }
-                        }
+        let entries = unsafe { slice::from_raw_parts_mut(entries_ptr, num_partitions) };
+        for part_number in 0..(self.primary_header.num_partition_entries) {
+            let offset = (part_number * self.primary_header.sizeof_partition_entry) as isize;
 
-                        &*entries
-                    })
-            })
+            unsafe {
+                let entry_ptr = partition_entry_table.as_ptr().offset(offset);
+                let entry = &mut *(entry_ptr as *mut GptPartitionEntry);
+                (*entries)[part_number as usize] = entry;
+            }
+        }
+
+        Ok(&*entries)
     }
 
     fn read_partitions_raw(&self) -> Result<&mut [u8], Status> {
