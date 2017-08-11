@@ -70,7 +70,7 @@ pub fn efi_main(image_handle: Handle) -> Status {
     let partition = bs.handle_protocol::<uefi::protocol::DevicePathProtocol>(this.device_handle)
         .and_then(parent_device_path)
         .and_then(|parent_path| util::GptDisk::read_from(parent_path))
-        .and_then(|disk| disk.read_partitions().map(util::gptprio::next));
+        .map(|disk| util::gptprio::next(disk.partitions));
 
     match partition {
         Ok(Some(gptprio_partition)) => {
