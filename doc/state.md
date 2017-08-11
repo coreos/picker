@@ -1,0 +1,48 @@
+# picker's current state
+
+## Build system
+Currently, picker is built as a Rust library. When built, `cargo build` outputs object files for
+picker and all of its dependencies into `target/(release|debug)/deps`. `make` invokes `cargo build`,
+links those object files into a shared library `picker.so`, and uses `objcopy` to make an EFI
+executable from the shared library.
+
+## UEFI entry point
+`picker::uefi_entry` contains the actual entry point for picker. All it does is initialize [the
+rust-uefi library](https://github.com/csssuf/rust-uefi) and call `picker::efi_main`.
+
+## rust-uefi
+The rust-uefi library is responsible for actually wrapping UEFI structs and providing a more
+idiomatic Rust interface to the protocols UEFI provides. Functionality has been added to it largely
+as needed by picker, so it's by no means a complete implementation of the UEFI specification. The
+Rust interface it provides could also use some refinement; it still deals with a lot of raw pointers
+that could be references, and it has a number of functions which return memory that must be
+explicitly deallocated by the caller. This obviously isn't ideal, but until the new `Alloc` trait
+and other allocator API redesigns in Rust are complete and stable, improving it mostly takes the
+form of manually adding `Drop` implementations.
+
+## picker's behavior
+On boot, picker attempts to read the GPT header from the disk picker was booted from. If the disk
+contains a valid GPT header, it then determines what, if any, the next gptprio partition to try is.
+The user is then prompted (over UEFI console and serial if possible) to choose a partition to boot.
+If the user does not choose a partition within 5 seconds, the gptprio result is used (or USR-A if no
+eligible gptprio partition is found).
+
+Once a partition has been chosen, the shim for that partition is booted. Shim expects the
+`LoadOptions` field in its `LoadedImageProtocol` to be set to the following (as a UTF-16 string):
+```
+\path\to\shim.efi \nextstage.efi
+```
+*Note that `\nextstage.efi` is given relative to the path to shim.* Thus, if shim is stored in
+`\dir1\dir2\shim.efi` and needs to load `\dir1\dir2\next.efi`, the second path should just be
+`\next.efi`.
+
+Picker uses `\EFI\coreos\shim_a.efi` and `\EFI\coreos\shim_b.efi` as its USR-A and USR-B shims,
+respectively, and instructs shim to find grub at `\EFI\coreos\grub_a.efi` and
+`\EFI\coreos\grub_b.efi`, respectively.
+
+## Next steps
+Picker doesn't tell grub which partition to boot. Fortunately, the Container Linux grub has patches
+allowing it to read EFI variables, which are a much more convenient way to pass information than
+`LoadOptions`. Implementing this would likely take the form of having picker set an EFI variable
+like `PickerChoice`, and editing `grub.cfg` to check for and use that variable before it runs the
+grub gptprio implementation.
