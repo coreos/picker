@@ -35,10 +35,16 @@ where
     loop {
         write("Option 1: ");
         write(option_a.display);
+        if option_a.default {
+            write(" (default)");
+        }
         write("\r\n");
 
         write("Option 2: ");
         write(option_b.display);
+        if option_b.default {
+            write(" (default)");
+        }
         write("\r\n");
 
         write("Enter boot choice: ");
@@ -50,7 +56,13 @@ where
             },
             Ok(None) => {
                 write("Taking default.\r\n");
-                return Ok(None);
+                if option_a.default {
+                    return Ok(Some(option_a));
+                } else if option_b.default {
+                    return Ok(Some(option_b));
+                } else {
+                    return Ok(None);
+                }
             }
             Err(e) => {
                 write("Error reading: ");

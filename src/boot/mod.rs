@@ -18,10 +18,12 @@ use core::ptr;
 
 use uefi::*;
 
-// When gptprio is implemented, boot_data may change to another type. For now it's just a path.
+#[derive(Clone, Copy)]
 pub struct BootOption {
     pub display: &'static str,
     pub boot_data: &'static str,
+    pub default: bool,
+    pub guid: Guid,
 }
 
 fn str_to_device_path(image: &str) -> Result<&protocol::DevicePathProtocol, Status> {
