@@ -25,7 +25,13 @@ On boot, picker attempts to read the GPT header from the disk picker was booted 
 contains a valid GPT header, it then determines what, if any, the next gptprio partition to try is.
 The user is then prompted (over UEFI console and serial if possible) to choose a partition to boot.
 If the user does not choose a partition within 5 seconds, the gptprio result is used (or USR-A if no
-eligible gptprio partition is found).
+eligible gptprio partition is found). *Note that picker's gptprio implementation does not update
+`tries`.* The partition handling code has been designed with this in mind, however; when writing GPT
+partition entries, the unused portion should be set to zero. picker's GPT partition handling reads
+in the entire partition entry array and stores it in the `raw_partitions` field of `GptDisk`, and
+stores references into that data as `partitions`. This way, when the partitions are updated,
+`raw_partitions` remains as a contiguous partition entry array that can simply be written to disk,
+without needing to reassemble the individual entries into a valid array.
 
 Once a partition has been chosen, the shim for that partition is booted. Shim expects the
 `LoadOptions` field in its `LoadedImageProtocol` to be set to the following (as a UTF-16 string):
