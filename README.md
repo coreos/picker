@@ -7,7 +7,6 @@ Pre-shim EFI bootloader for Container Linux.
 ### Prerequisites
 * Nightly Rust (`rustup toolchain install nightly && rustup default nightly` if
   you're using rustup)
-* Xargo (`cargo install xargo`)
 * GNU EFI (install through your package manager)
 
 ### Building
