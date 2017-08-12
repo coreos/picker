@@ -20,6 +20,14 @@ explicitly deallocated by the caller. This obviously isn't ideal, but until the 
 and other allocator API redesigns in Rust are complete and stable, improving it mostly takes the
 form of manually adding `Drop` implementations.
 
+### Allocation
+The biggest pain point of the rust-uefi library is currently allocation. In general, any memory
+rust-uefi allocates via UEFI's `AllocatePool` or `AllocatePages` functions must be manually freed by
+the library consumer. The current plan to improve this situation is to implement wrapper structs in
+rust-uefi for any data structures that require allocation. This will allow rust-uefi to implement
+`Drop` for all of these structs, in turn removing the need for library consumers to manually free
+them.
+
 ## picker's behavior
 On boot, picker attempts to read the GPT header from the disk picker was booted from. If the disk
 contains a valid GPT header, it then determines what, if any, the next gptprio partition to try is.
