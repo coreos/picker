@@ -14,3 +14,6 @@ rustflags = [
     "-C", "link-arg=-nostartfiles",
     "-C", "link-arg=-Wl,-N",
 ]
+
+[build]
+incremental = false
