@@ -23,7 +23,7 @@ build/bootx64-%-symbols.efi: build/picker-%.so
 # `cargo clean`.
 build/picker-%.so: target/%/deps/picker.o
 	@mkdir -p build
-	ld target/$(TYPE)/deps/*.o $(EFI_DIR)/crt0-efi-x86_64.o -nostdlib -znocombreloc -T $(EFI_DIR)/elf_x86_64_efi.lds -shared -Bsymbolic -lefi -L $(LIB_DIR) -pie -e efi_entry -o $@
+	ld target/$(TYPE)/deps/*.o $(EFI_DIR)/crt0-efi-x86_64.o -nostdlib -znocombreloc -T $(EFI_DIR)/elf_x86_64_efi.lds -shared -Bsymbolic -lefi -L $(LIB_DIR) -pie -e efi_entry -N -o $@
 
 target/%/deps/picker.o: src/picker.rs src/uefi_entry/mod.rs src/util/mod.rs src/util/input.rs Cargo.toml
 	cargo build $(CARGO_FLAG)

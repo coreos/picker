@@ -12,4 +12,5 @@ rustflags = [
     "-C", "link-arg=-Wl,-eefi_entry",
     "-C", "link-arg=-Wl,-L/usr/lib64",
     "-C", "link-arg=-nostartfiles",
+    "-C", "link-arg=-Wl,-N",
 ]
